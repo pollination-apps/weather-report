@@ -1,4 +1,4 @@
-## UTCI-Heatmap App
+## Weather Report App
 
 ![App](/images/app.png)
 
