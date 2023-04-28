@@ -5,7 +5,7 @@ import numpy as np
 
 from ladybug.epw import EPW
 
-from helper import colorsets, get_fields, get_image, get_hourly_data_figure, \
+from helper import colorsets, get_fields, get_hourly_data_figure, \
     get_bar_chart_figure, get_hourly_line_chart_figure, get_figure_config,\
     get_hourly_diurnal_average_chart_figure, get_daily_chart_figure, get_sunpath_figure,\
     get_degree_days_figure, get_windrose_figure, get_psy_chart_figure, \
@@ -17,7 +17,7 @@ st.set_page_config(
 )
 
 st.sidebar.image(
-    'https://uploads-ssl.webflow.com/6035339e9bb6445b8e5f77d7/616da00b76225ec0e4d975ba'
+    'https://uploads-ssl.webflow.com/6035339e9bb6445b8e5f77d7/6397a0e7b8237e2d67af741a'
     '_pollination_brandmark-p-500.png',
     use_column_width=True
 )
@@ -141,8 +141,8 @@ def main():
         with st.expander('Sunpath'):
 
             sunpath_radio = st.radio(
-                '', ['from epw location', 'with epw data'],
-                index=0, key=0
+                'Sunpath method', ['from epw location', 'with epw data'],
+                index=0, key='sunpath_visualization_method'
             )
 
             if sunpath_radio == 'from epw location':
@@ -193,18 +193,24 @@ def main():
 
             psy_load_data = st.checkbox('Load data', key='psychrometric')
             if psy_load_data:
-                psy_selected = st.selectbox('Select an environmental variable',
-                                            options=fields.keys(), key='psychrometric')
+                psy_selected = st.selectbox(
+                    'Select an environmental variable',
+                    options=fields.keys(), key='psychrometric'
+                )
                 psy_data = global_epw._get_data_by_field(fields[psy_selected])
             else:
                 psy_data = None
 
-            psy_draw_polygons = st.checkbox('Draw comfort polygons', key='psychrometric')
+            psy_draw_polygons = st.checkbox(
+                'Draw comfort polygons', key='psychrometric_polygon'
+            )
             psy_strategy_options = ['Comfort', 'Evaporative Cooling',
                                     'Mass + Night Ventilation', ' Occupant use of fans',
                                     'Capture internal heat', 'Passive solar heating', 'All']
             psy_selected_strategy = st.selectbox(
-                'Select a passive strategy', options=psy_strategy_options, key='psychrometric')
+                'Select a passive strategy',
+                options=psy_strategy_options, key='psychrometric_passive_strategy'
+            )
 
     ####################################################################################
     # Main page
@@ -217,37 +223,35 @@ def main():
                     ' file for Boston, USA.')
         st.markdown('🖱️ Hover over every chart to see the values.')
 
+        st.info(
+            body='This apps is developed to showcase the `ladybug-charts` library '
+            'modules and all the different charts. For that reason it might be a bit '
+            'slower than what you want an interactive app to be.\n\nUse it as a source '
+            'to learn to build your own apps. You can see the source code [here]'
+            '(https://github.com/pollination-apps/weather-report). You can post your '
+            'questions [here](https://discourse.pollination.cloud/c/apps/11).'
+        )
+
         st.header(f'{global_epw.location.city}, {global_epw.location.country}')
 
         # image and map ################################################################
-        col1, col2 = st.columns(2)
+        st.text(
+            f'Latitude: {global_epw.location.latitude}, Longitude: {global_epw.location.longitude},'
+            f' Timezone: {global_epw.location.time_zone}, source: {global_epw.location.source}')
 
-        with col1:
-            st.text(
-                f'Latitude: {global_epw.location.latitude}, Longitude: {global_epw.location.longitude},'
-                f' Timezone: {global_epw.location.time_zone}, source: {global_epw.location.source}')
+        with st.expander('Load imge from local drive'):
+            local_image = st.file_uploader(
+                'Select an image', type=['png', 'jpg', 'jpeg'])
 
-            with st.expander('Load imge from local drive'):
-                local_image = st.file_uploader(
-                    'Select an image', type=['png', 'jpg', 'jpeg'])
+        if local_image:
+            st.image(local_image)
 
-            get_image(global_epw.location.latitude, global_epw.location.longitude)
-
-            if local_image:
-                st.image(local_image)
-            else:
-                try:
-                    st.image('./assets/image/000001.jpg')
-                except FileNotFoundError:
-                    pass
-
-        with col2:
-            location = pd.DataFrame(
-                [np.array([global_epw.location.latitude,
-                          global_epw.location.longitude], dtype=np.float64)],
-                columns=['latitude', 'longitude']
-            )
-            st.map(location, use_container_width=True)
+        location = pd.DataFrame(
+            [np.array([global_epw.location.latitude,
+                        global_epw.location.longitude], dtype=np.float64)],
+            columns=['latitude', 'longitude']
+        )
+        st.map(location, use_container_width=True)
 
         # Diurnal average chart from hourly data ########################################
         with st.container():

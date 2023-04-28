@@ -105,13 +105,13 @@ def get_colors(switch: bool, global_colorset: str) -> List[Color]:
     return colors
 
 
-@st.cache()
+@st.cache_data
 def get_fields() -> dict:
     # A dictionary of EPW variable name to its corresponding field number
     return {EPWFields._fields[i]['name'].name: i for i in range(6, 34)}
 
 
-@st.cache()
+@st.cache_data
 def get_image(latitude: float, longitude: float) -> None:
     # find city name and create a keyword for search
     geolocator = Nominatim(user_agent="geoapiExercises")
@@ -133,7 +133,6 @@ def get_image(latitude: float, longitude: float) -> None:
     google_crawler.crawl(keyword=keyword, max_num=1, filters=filters)
 
 
-@st.cache(hash_funcs={EPW: epw_hash_func, Color: color_hash_func}, allow_output_mutation=True)
 def get_diurnal_average_chart_figure(epw: EPW, global_colorset: str, switch: bool = False) -> Figure:
     """Create a diurnal average chart from EPW.
 
@@ -148,8 +147,6 @@ def get_diurnal_average_chart_figure(epw: EPW, global_colorset: str, switch: boo
     return epw.diurnal_average_chart(show_title=True, colors=colors)
 
 
-@st.cache(hash_funcs={HourlyContinuousCollection: hourly_data_hash_func,
-                      Color: color_hash_func}, allow_output_mutation=True)
 def get_hourly_data_figure(
         data: HourlyContinuousCollection, global_colorset: str, conditional_statement: str,
         min: float, max: float, st_month: int, st_day: int, st_hour: int, end_month: int,
@@ -208,7 +205,6 @@ def get_hourly_data_figure(
     return hourly_plot.plot(title=str(data.header.data_type), show_title=True)
 
 
-@st.cache(hash_funcs={EPW: epw_hash_func, Color: color_hash_func})
 def get_bar_chart_figure(fields: dict, epw: EPW, selection: List[str], data_type: str,
                          switch: bool, stack: bool, global_colorset: str) -> Figure:
     """Create bar chart figure.
@@ -241,12 +237,12 @@ def get_bar_chart_figure(fields: dict, epw: EPW, selection: List[str], data_type
                 data.append(var.total_daily())
 
     lb_lp = LegendParameters(colors=colors)
-    monthly_chart = MonthlyChart(data, legend_parameters=lb_lp)
-    return monthly_chart.plot(stack=stack, title=data_type, show_title=True)
+    monthly_chart = MonthlyChart(
+        data, legend_parameters=lb_lp, stack=stack
+    )
+    return monthly_chart.plot(title=data_type, center_title=True)
 
 
-@st.cache(hash_funcs={HourlyContinuousCollection: hourly_data_hash_func,
-                      Color: color_hash_func}, allow_output_mutation=True)
 def get_hourly_line_chart_figure(data: HourlyContinuousCollection,
                                  switch: bool, global_colorset: str) -> Figure:
     """Create hourly line chart figure.
@@ -260,11 +256,11 @@ def get_hourly_line_chart_figure(data: HourlyContinuousCollection,
         A plotly figure.
     """
     colors = get_colors(switch, global_colorset)
-    return data.line_chart(color=colors[-1])
+    return data.line_chart(
+        color=colors[-1], title=data.header.data_type.name, show_title=True
+    )
 
 
-@st.cache(hash_funcs={HourlyContinuousCollection: hourly_data_hash_func,
-                      Color: color_hash_func}, allow_output_mutation=True)
 def get_hourly_diurnal_average_chart_figure(data: HourlyContinuousCollection,
                                             switch: bool, global_colorset: str) -> Figure:
     """Create diurnal average chart figure for hourly data.
@@ -283,8 +279,6 @@ def get_hourly_diurnal_average_chart_figure(data: HourlyContinuousCollection,
         color=colors[-1])
 
 
-@st.cache(hash_funcs={HourlyContinuousCollection: hourly_data_hash_func,
-                      Color: color_hash_func}, allow_output_mutation=True)
 def get_daily_chart_figure(data: HourlyContinuousCollection, switch: bool,
                            global_colorset: str) -> Figure:
     """Create daily chart figure.
@@ -304,8 +298,6 @@ def get_daily_chart_figure(data: HourlyContinuousCollection, switch: bool,
                           show_title=True)
 
 
-@st.cache(hash_funcs={HourlyContinuousCollection: hourly_data_hash_func,
-                      Color: color_hash_func, EPW: epw_hash_func}, allow_output_mutation=True)
 def get_sunpath_figure(sunpath_type: str, global_colorset: str, epw: EPW = None,
                        switch: bool = False,
                        data: HourlyContinuousCollection = None, ) -> Figure:
@@ -325,15 +317,15 @@ def get_sunpath_figure(sunpath_type: str, global_colorset: str, epw: EPW = None,
     if sunpath_type == 'from epw location':
         lb_sunpath = Sunpath.from_location(epw.location)
         colors = get_colors(switch, global_colorset)
-        return lb_sunpath.plot(colorset=colors)
+        title = epw.location.city
+        return lb_sunpath.plot(colorset=colors, title=title, show_title=True)
     else:
         lb_sunpath = Sunpath.from_location(epw.location)
         colors = colorsets[global_colorset]
-        return lb_sunpath.plot(colorset=colors, data=data)
+        title = data.header.data_type.name
+        return lb_sunpath.plot(colorset=colors, data=data, title=title, show_title=True)
 
 
-@st.cache(hash_funcs={HourlyContinuousCollection: hourly_data_hash_func,
-                      Color: color_hash_func}, allow_output_mutation=True)
 def get_degree_days_figure(
     dbt: HourlyContinuousCollection, _heat_base_: int, _cool_base_: int,
     stack: bool, switch: bool, global_colorset: str) -> Tuple[Figure,
@@ -372,13 +364,13 @@ def get_degree_days_figure(
     colors = get_colors(switch, global_colorset)
 
     lb_lp = LegendParameters(colors=colors)
-    monthly_chart = MonthlyChart([hourly_cool.total_monthly(),
-                                  hourly_heat.total_monthly()], legend_parameters=lb_lp)
+    monthly_chart = MonthlyChart(
+        [hourly_cool.total_monthly(), hourly_heat.total_monthly()],
+        legend_parameters=lb_lp, stack=stack)
 
-    return monthly_chart.plot(stack=stack), hourly_heat, hourly_cool
+    return monthly_chart.plot(title='Degree Days', center_title=True), hourly_heat, hourly_cool
 
 
-@st.cache(hash_funcs={Color: color_hash_func, EPW: epw_hash_func}, allow_output_mutation=True)
 def get_windrose_figure(st_month: int, st_day: int, st_hour: int, end_month: int,
                         end_day: int, end_hour: int, epw, global_colorset) -> Figure:
     """Create windrose figure.
@@ -405,11 +397,9 @@ def get_windrose_figure(st_month: int, st_day: int, st_hour: int, end_month: int
     lb_wind_rose = WindRose(wind_dir, wind_spd)
     lb_wind_rose.legend_parameters = lb_lp
 
-    return lb_wind_rose.plot()
+    return lb_wind_rose.plot(title='Wind-Rose', show_title=True)
 
 
-@st.cache(hash_funcs={HourlyContinuousCollection: hourly_data_hash_func,
-                      Color: color_hash_func, EPW: epw_hash_func}, allow_output_mutation=True)
 def get_psy_chart_figure(epw: EPW, global_colorset: str, selected_strategy: str,
                          load_data: bool, draw_polygons: bool,
                          data: HourlyContinuousCollection) -> Figure:
