@@ -1,12 +1,8 @@
 """Functions to support the epw-viz app."""
 
-import pathlib
-import shutil
 import streamlit as st
 
 from typing import List, Tuple
-from icrawler.builtin import GoogleImageCrawler
-from geopy.geocoders import Nominatim
 from plotly.graph_objects import Figure
 
 from ladybug.datatype.temperaturetime import HeatingDegreeTime, CoolingDegreeTime
@@ -109,28 +105,6 @@ def get_colors(switch: bool, global_colorset: str) -> List[Color]:
 def get_fields() -> dict:
     # A dictionary of EPW variable name to its corresponding field number
     return {EPWFields._fields[i]['name'].name: i for i in range(6, 34)}
-
-
-@st.cache_data
-def get_image(latitude: float, longitude: float) -> None:
-    # find city name and create a keyword for search
-    geolocator = Nominatim(user_agent="geoapiExercises")
-    location = geolocator.reverse(str(latitude)+","+str(longitude), language='en')
-    address = location.raw['address']
-    city = address.get('city', '')
-    keyword = city + ' city image'
-
-    # nuke the images folder if exists
-    path = pathlib.Path('./assets/image')
-    if path.is_dir():
-        shutil.rmtree(path)
-
-    # create a new folder to download the image
-    path.mkdir(parents=True, exist_ok=True)
-    filters = dict(size='medium', type='photo',
-                   license='commercial,modify')
-    google_crawler = GoogleImageCrawler(storage={'root_dir': './assets/image'})
-    google_crawler.crawl(keyword=keyword, max_num=1, filters=filters)
 
 
 def get_diurnal_average_chart_figure(epw: EPW, global_colorset: str, switch: bool = False) -> Figure:
